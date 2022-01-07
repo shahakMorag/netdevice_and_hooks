@@ -51,7 +51,7 @@ int push_packet_to_interface(void * data) {
 			goto cleanup;
 		}
 
-		memcpy(skb->data, BEACON_PACKET, sizeof(BEACON_PACKET));
+		memcpy(skb_put(skb, sizeof(BEACON_PACKET)), BEACON_PACKET, sizeof(BEACON_PACKET));
 
 		skb_reset_mac_header(skb);
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
