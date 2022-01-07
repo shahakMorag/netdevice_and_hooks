@@ -1,6 +1,9 @@
 #include <linux/init.h>
+#include <linux/sched.h>
+#include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/device.h>
+#include <linux/skbuff.h>
 #include <linux/kernel.h>
 #include <linux/if_arp.h>
 #include <linux/kthread.h>
@@ -64,7 +67,6 @@ cleanup:
 
 void netdevice_setup(struct net_device * dev) {
 	int j = 0;
-	dev->type = ARPHRD_IEEE80211;
 
 	for (; j < ETH_ALEN; ++j) {
 		dev->dev_addr[j] = (char)j;
@@ -72,6 +74,7 @@ void netdevice_setup(struct net_device * dev) {
 
 	ether_setup(dev);
 	dev->netdev_ops = &ndo;
+	dev->type = ARPHRD_IEEE80211;
 }
 
 static bool add_netdevice(void) {
