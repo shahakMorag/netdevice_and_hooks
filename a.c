@@ -45,13 +45,13 @@ int push_packet_to_interface(void * data) {
 	}
 
 	while (!kthread_should_stop()) {
-		struct sk_buff * skb = netdev_alloc_skb(g_net_device, sizeof(*BEACON_PACKET));
+		struct sk_buff * skb = netdev_alloc_skb(g_net_device, sizeof(BEACON_PACKET));
 		if (NULL == skb) {
 			printk("failed to allocate skb");
 			goto cleanup;
 		}
 
-		memcpy(skb_push(skb, sizeof(*BEACON_PACKET)), BEACON_PACKET, sizeof(*BEACON_PACKET));
+		memcpy(skb_push(skb, sizeof(BEACON_PACKET)), BEACON_PACKET, sizeof(BEACON_PACKET));
 
 		skb_reset_mac_header(skb);
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
