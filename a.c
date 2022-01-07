@@ -14,13 +14,52 @@ MODULE_AUTHOR("Robert W. Oliver II");
 MODULE_DESCRIPTION("A simple example Linux module.");
 MODULE_VERSION("0.01");
 
-#define UNUSED(a) do { (void)a } while (0)
+#define SLEEP_BETWEEN_PACKETS (1000)
+#define UNUSED(a) do { (void)a; } while (0)
 
 struct net_device * g_net_device = NULL;
+struct task_struct * g_push_packet_kthread = NULL;
+
+static netdev_tx_t my_dev_start_xmit(struct sk_buff *skb, struct net_device *dev);
 
 struct net_device_ops ndo = {
-	0
+	.ndo_start_xmit = &my_dev_start_xmit,
 };
+
+
+static netdev_tx_t my_dev_start_xmit(struct sk_buff *skb, struct net_device *dev) {
+	kfree_skb(skb);
+
+	return NETDEV_TX_OK;
+}
+
+int push_packet_to_interface(void * data) {
+	UNUSED(data);
+
+	if(NULL == g_net_device) {
+		goto cleanup;
+	}
+
+	while (!kthread_should_stop()) {
+		struct sk_buff * skb = netdev_alloc_skb(g_net_device, sizeof(*BEACON_PACKET));
+		if (NULL == skb) {
+			printk("failed to allocate skb");
+			goto cleanup;
+		}
+
+		memcpy(skb_push(skb, sizeof(*BEACON_PACKET)), BEACON_PACKET, sizeof(*BEACON_PACKET));
+
+		netif_rx(skb);
+		msleep_interruptible(SLEEP_BETWEEN_PACKETS);
+	}
+
+cleanup:
+	while (!kthread_should_stop()) {
+		schedule();
+	}
+
+	return 0;
+}
 
 void netdevice_setup(struct net_device * dev) {
 	int j = 0;
@@ -71,9 +110,19 @@ static int __init lkm_example_init(void) {
 		return -1;
 	}
 
+	g_push_packet_kthread = kthread_run(push_packet_to_interface, NULL, "push_packets");
+	if (NULL == g_push_packet_kthread) {
+		remove_netdevice();
+		return -1;
+	}
+
 	return 0;
 }
 static void __exit lkm_example_exit(void) {
+	if (NULL != g_push_packet_kthread) {
+		kthread_stop(g_push_packet_kthread);
+	}
+
 	remove_netdevice();
 }
 
