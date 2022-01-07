@@ -53,6 +53,11 @@ int push_packet_to_interface(void * data) {
 
 		memcpy(skb_push(skb, sizeof(*BEACON_PACKET)), BEACON_PACKET, sizeof(*BEACON_PACKET));
 
+		skb_reset_mac_header(skb);
+		skb->ip_summed = CHECKSUM_UNNECESSARY;
+		skb->pkt_type = PACKET_OTHERHOST;
+		skb->protocol = htons(ETH_P_802_2);
+
 		netif_rx(skb);
 		msleep_interruptible(SLEEP_BETWEEN_PACKETS);
 	}
