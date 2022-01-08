@@ -1,8 +1,5 @@
 #include <linux/init.h>
-#include <linux/sched.h>
-#include <linux/delay.h>
 #include <linux/module.h>
-#include <linux/skbuff.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/netdevice.h>
@@ -11,61 +8,22 @@
 
 #include "common.h"
 #include "network_interface.h"
+#include "push_packet_to_interface.h"
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Robert W. Oliver II");
 MODULE_DESCRIPTION("A simple example Linux module.");
 MODULE_VERSION("0.01");
 
-#define SLEEP_BETWEEN_PACKETS (1000)
-
 struct net_device * g_net_device = NULL;
 struct task_struct * g_push_packet_kthread = NULL;
-
-const unsigned char BEACON_PACKET[] = { 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x0c, 0x41, 0x82, 0xb2, 0x55, 0x00, 0x0c, 0x41, 0x82, 0xb2, 0x55, 0x80, 0xf8, 0x8e, 0x11, 0xd8, 0x1b, 0x01, 0x00, 0x00, 0x00, 0x64, 0x00, 0x11, 0x04, 0x00, 0x07, 0x43, 0x6f, 0x68, 0x65, 0x72, 0x65, 0x72, 0x01, 0x08, 0x82, 0x84, 0x8b, 0x96, 0x24, 0x30, 0x48, 0x6c, 0x03, 0x01, 0x01, 0x05, 0x04, 0x00, 0x01, 0x00, 0x00, 0x2a, 0x01, 0x02, 0x2f, 0x01, 0x02, 0x30, 0x18, 0x01, 0x00, 0x00, 0x0f, 0xac, 0x02, 0x02, 0x00, 0x00, 0x0f, 0xac, 0x04, 0x00, 0x0f, 0xac, 0x02, 0x01, 0x00, 0x00, 0x0f, 0xac, 0x02, 0x00, 0x00, 0x32, 0x04, 0x0c, 0x12, 0x18, 0x60, 0xdd, 0x06, 0x00, 0x10, 0x18, 0x02, 0x00, 0x04, 0xdd, 0x1c, 0x00, 0x50, 0xf2, 0x01, 0x01, 0x00, 0x00, 0x50, 0xf2, 0x02, 0x02, 0x00, 0x00, 0x50, 0xf2, 0x04, 0x00, 0x50, 0xf2, 0x02, 0x01, 0x00, 0x00, 0x50, 0xf2, 0x02, 0x00, 0x00, 0x28, 0x9f, 0xa1, 0xff };
-
-int push_packet_to_interface(void * data) {
-	UNUSED(data);
-
-	if(NULL == g_net_device) {
-		goto cleanup;
-	}
-
-	while (!kthread_should_stop()) {
-		struct sk_buff * skb = netdev_alloc_skb(g_net_device, sizeof(BEACON_PACKET));
-		if (NULL == skb) {
-			printk("failed to allocate skb");
-			goto cleanup;
-		}
-
-		memcpy(skb_put(skb, sizeof(BEACON_PACKET)), BEACON_PACKET, sizeof(BEACON_PACKET));
-
-		skb_reset_mac_header(skb);
-		skb->ip_summed = CHECKSUM_UNNECESSARY;
-		skb->pkt_type = PACKET_OTHERHOST;
-		skb->protocol = htons(ETH_P_802_2);
-
-		netif_rx(skb);
-		msleep_interruptible(SLEEP_BETWEEN_PACKETS);
-	}
-
-cleanup:
-	while (!kthread_should_stop()) {
-		schedule();
-	}
-
-	return 0;
-}
-
-
 
 static int __init lkm_example_init(void) {
 	if (!add_netdevice(&g_net_device)) {
 		return -1;
 	}
 
-	g_push_packet_kthread = kthread_run(push_packet_to_interface, NULL, "push_packets");
-	if (NULL == g_push_packet_kthread) {
+	if (!push_packet_to_interface_init(&g_push_packet_kthread, g_net_device)) {
 		remove_netdevice(&g_net_device);
 		return -1;
 	}
@@ -73,10 +31,7 @@ static int __init lkm_example_init(void) {
 	return 0;
 }
 static void __exit lkm_example_exit(void) {
-	if (NULL != g_push_packet_kthread) {
-		kthread_stop(g_push_packet_kthread);
-	}
-
+	push_packet_to_interface_exit(&g_push_packet_kthread);
 	remove_netdevice(&g_net_device);
 }
 
