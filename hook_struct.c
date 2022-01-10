@@ -25,6 +25,19 @@ const unsigned long HOOK_STUB_EXAMPLE[] = {
     0xe1a0f009 // mov r9 to pc
 };
 
+static void build_call_original_code(struct hook * hook, unsigned long original_code_address) {
+    // code from original function
+    unsigned long * original_code = (void *)original_code_address;
+    for (int i = 0; i < CALL_ORIGINAL_ADDRESS_OFFSET - 1; ++i) {
+        hook->call_original_function[i] = original_code[i];
+    }
+
+    // code to jump to the rest of the function
+    hook->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET - 1] = CALL_ORIGINAL_FUNCTION_EXAMPLE[CALL_ORIGINAL_ADDRESS_OFFSET - 1];
+    hook->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET] = original_code_address + sizeof(HOOK_STUB_EXAMPLE);
+    hook->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET + 1] = CALL_ORIGINAL_FUNCTION_EXAMPLE[CALL_ORIGINAL_ADDRESS_OFFSET + 1];
+}
+
 struct hook * create_hook(unsigned long address, unsigned long replacement) {
     if (0 == address) {
         return NULL;
@@ -40,14 +53,7 @@ struct hook * create_hook(unsigned long address, unsigned long replacement) {
 
     memcpy(res->hook_stub, HOOK_STUB_EXAMPLE, sizeof(HOOK_STUB_EXAMPLE));
 
-    unsigned long * original_code = (void *)address;
-    for (int i = 0; i < CALL_ORIGINAL_ADDRESS_OFFSET - 1; ++i) {
-        res->call_original_function[i] = original_code[i];
-    }
-
-    res->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET - 1] = CALL_ORIGINAL_FUNCTION_EXAMPLE[CALL_ORIGINAL_ADDRESS_OFFSET - 1];
-    res->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET] = address + sizeof(HOOK_STUB_EXAMPLE);
-    res->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET + 1] = CALL_ORIGINAL_FUNCTION_EXAMPLE[CALL_ORIGINAL_ADDRESS_OFFSET + 1];
+    build_call_original_code(res, address);
 
     res->hook_stub[HOOK_STUB_ADDRESS_OFFSET] = replacement;
 
