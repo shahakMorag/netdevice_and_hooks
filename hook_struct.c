@@ -1,3 +1,12 @@
+/*
+My hooks write to the three opcodes in the start of the function the hook stub.
+The hook stub jumps to the replacement function without linking.
+Therefore the function must have the same signature as the original function.
+When we want to call the original function We use function pointer that points
+into buffer that contains the first three opcodes from the original function
+and then jumps to the rest of the function.
+When using this hooking infrastructure you need to make sure that no caller use r9 for any purpose.
+*/
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <linux/kernel.h>
@@ -6,6 +15,7 @@
 #include "common.h"
 #include "hook_struct.h"
 
+#define HOOK_STUB_ADDRESS_OFFSET (1)
 #define CALL_ORIGINAL_ADDRESS_OFFSET (4)
 
 const unsigned long CALL_ORIGINAL_FUNCTION_EXAMPLE[] = {
@@ -16,8 +26,6 @@ const unsigned long CALL_ORIGINAL_FUNCTION_EXAMPLE[] = {
     0x0, // address to jump to
     0xe1a0f009 // mov r9 to pc
 };
-
-#define HOOK_STUB_ADDRESS_OFFSET (1)
 
 const unsigned long HOOK_STUB_EXAMPLE[] = {
     0xe51f9004, // ldr r9
