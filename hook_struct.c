@@ -19,9 +19,9 @@ When using this hooking infrastructure you need to make sure that no caller use 
 #define CALL_ORIGINAL_ADDRESS_OFFSET (4)
 
 const unsigned long CALL_ORIGINAL_FUNCTION_EXAMPLE[] = {
-    0xe1a0c00d, // mov r12, sp
-    0xe92dd8f0, // push {r4, r5, r6, r7, r11, r12, lr, pc}
-    0xe24cb004, // sub r11, r12, #4
+    0x0, // original code from the function
+    0x0, // original code from the function
+    0x0, // original code from the function
     0xe51f9004, // ldr r9
     0x0, // address to jump to
     0xe1a0f009 // mov r9 to pc
