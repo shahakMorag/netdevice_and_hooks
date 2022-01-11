@@ -4,41 +4,41 @@
 #include "hook_struct.h"
 #include "hook_function.h"
 
-struct hook * netif_rx_hook_struct = NULL;
-int (*netif_rx_real)(struct sk_buff *skb) = NULL;
+struct hook * mutex_unlock_hook_struct = NULL;
+int (*mutex_unlock_real)(struct mutex * mutex) = NULL;
 
-int netif_rx_hook(struct sk_buff *skb) {
-    printk("hi from netif_rx_hook skb: %p\n", skb);
+int mutex_unlock_hook(struct mutex * mutex) {
+    // printk("hi from mutex_unlock_hook mutex: %p\n", mutex);
 
-    int res = netif_rx_real(skb);
-    printk("res: %d", res);
+    int res = mutex_unlock_real(mutex);
+    // printk("res: %d", res);
 
     return res;
 }
 
 bool hook_function_init(void) {
-    netif_rx_hook_struct = create_hook_name("netif_rx", (unsigned long)netif_rx_hook);
-    if (NULL == netif_rx_hook_struct) {
+    mutex_unlock_hook_struct = create_hook_name("mutex_unlock", (unsigned long)mutex_unlock_hook);
+    if (NULL == mutex_unlock_hook_struct) {
         return false;
     }
 
-    netif_rx_real = (void *)netif_rx_hook_struct->call_original_function;
+    mutex_unlock_real = (void *)mutex_unlock_hook_struct->call_original_function;
 
-    install_hook(netif_rx_hook_struct);
+    install_hook(mutex_unlock_hook_struct);
 
     return true;
 }
 
 void hook_function_exit(void) {
-    if (NULL == netif_rx_hook_struct) {
+    if (NULL == mutex_unlock_hook_struct) {
         return;
     }
 
-    remove_hook(netif_rx_hook_struct);
+    remove_hook(mutex_unlock_hook_struct);
 
     // wait for all threads and shit to finish before free the hook
     msleep(1000);
 
-    kfree(netif_rx_hook_struct);
-    netif_rx_hook_struct = NULL;
+    kfree(mutex_unlock_hook_struct);
+    mutex_unlock_hook_struct = NULL;
 }

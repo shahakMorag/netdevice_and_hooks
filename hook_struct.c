@@ -16,21 +16,18 @@ When using this hooking infrastructure you need to make sure that no caller use 
 #include "hook_struct.h"
 
 #define HOOK_STUB_ADDRESS_OFFSET (1)
-#define CALL_ORIGINAL_ADDRESS_OFFSET (4)
+#define CALL_ORIGINAL_ADDRESS_OFFSET (3)
 
 const unsigned long CALL_ORIGINAL_FUNCTION_EXAMPLE[] = {
     0x0, // original code from the function
     0x0, // original code from the function
-    0x0, // original code from the function
-    0xe51f9004, // ldr r9
+    0xe51ff004, // ldr pc
     0x0, // address to jump to
-    0xe1a0f009 // mov r9 to pc
 };
 
 const unsigned long HOOK_STUB_EXAMPLE[] = {
-    0xe51f9004, // ldr r9
+    0xe51ff004, // ldr pc
     0x0, // address to jump to
-    0xe1a0f009 // mov r9 to pc
 };
 
 static void build_call_original_code(struct hook * hook, unsigned long original_code_address) {
@@ -43,7 +40,6 @@ static void build_call_original_code(struct hook * hook, unsigned long original_
     // code to jump to the rest of the function
     hook->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET - 1] = CALL_ORIGINAL_FUNCTION_EXAMPLE[CALL_ORIGINAL_ADDRESS_OFFSET - 1];
     hook->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET] = original_code_address + sizeof(HOOK_STUB_EXAMPLE);
-    hook->call_original_function[CALL_ORIGINAL_ADDRESS_OFFSET + 1] = CALL_ORIGINAL_FUNCTION_EXAMPLE[CALL_ORIGINAL_ADDRESS_OFFSET + 1];
 }
 
 struct hook * create_hook(unsigned long address, unsigned long replacement) {
