@@ -22,7 +22,7 @@ static int push_packet_to_interface(void * data) {
 		}
 
 		static unsigned packet_number = 0;
-		log_printf("pushed packet %u\n", packet_number);
+		log_printf("pushed packet %u\n", packet_number++);
 
 		memcpy(skb_put(skb, sizeof(BEACON_PACKET)), BEACON_PACKET, sizeof(BEACON_PACKET));
 

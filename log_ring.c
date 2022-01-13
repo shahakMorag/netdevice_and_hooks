@@ -49,6 +49,7 @@ static int log_ring_show(struct seq_file *s, void *v) {
     struct log_entry * log_entry = v;
 
     if (NULL != log_entry->log) {
+        seq_printf(s, "[%lu] ", log_entry->jiffies);
         seq_puts(s, log_entry->log);
     }
 
@@ -74,6 +75,8 @@ bool log_printf(const char * fmt, ...) {
     if (g_log_ring_private.loop_happen) {
         kfree(g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].log);
     }
+
+    g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].jiffies = jiffies;
 
     va_list ap;
 
