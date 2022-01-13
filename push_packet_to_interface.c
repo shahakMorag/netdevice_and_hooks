@@ -1,6 +1,7 @@
 #include <linux/skbuff.h>
 #include <linux/kthread.h>
 
+#include "log_ring.h"
 #include "push_packet_to_interface.h"
 
 #define SLEEP_BETWEEN_PACKETS (1000)
@@ -19,6 +20,9 @@ static int push_packet_to_interface(void * data) {
 			printk("failed to allocate skb");
 			goto cleanup;
 		}
+
+		static unsigned packet_number = 0;
+		log_printf("pushed packet %u\n", packet_number);
 
 		memcpy(skb_put(skb, sizeof(BEACON_PACKET)), BEACON_PACKET, sizeof(BEACON_PACKET));
 
