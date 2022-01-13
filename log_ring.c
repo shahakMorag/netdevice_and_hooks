@@ -22,7 +22,26 @@ struct log_ring_private {
 static struct proc_dir_entry * g_log_file_entry = NULL;
 static struct log_ring_private g_log_ring_private = { 0 };
 
+static void * log_ring_start_after_loop(struct seq_file *s, loff_t *pos) {
+    loff_t new_pos = *pos + g_log_ring_private.current_log_entry;
+    if (new_pos >= g_log_ring_private.max_log_entries) {
+        new_pos -= g_log_ring_private.max_log_entries;
+    }
+
+    ++*pos;
+    return &g_log_ring_private.log_entries[new_pos];
+}
+
 static void * log_ring_start(struct seq_file *s, loff_t *pos) {
+    if (*pos >= g_log_ring_private.max_log_entries) {
+        ++*pos;
+        return NULL;
+    }
+
+    if (g_log_ring_private.loop_happen) {
+        return log_ring_start_after_loop(s, pos);
+    }
+
     if (*pos >= g_log_ring_private.current_log_entry) {
         ++*pos;
         return NULL;
@@ -68,10 +87,6 @@ bool log_printf(const char * fmt, ...) {
         return false;
     }
 
-    if (g_log_ring_private.current_log_entry >= g_log_ring_private.max_log_entries) {
-        g_log_ring_private.loop_happen = true;
-    }
-
     if (g_log_ring_private.loop_happen) {
         kfree(g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].log);
     }
@@ -87,6 +102,7 @@ bool log_printf(const char * fmt, ...) {
     g_log_ring_private.current_log_entry = (g_log_ring_private.current_log_entry + 1);
     if (g_log_ring_private.current_log_entry >= g_log_ring_private.max_log_entries) {
         g_log_ring_private.current_log_entry -= g_log_ring_private.max_log_entries;
+        g_log_ring_private.loop_happen = true;
     }
 
     return NULL != g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].log;
