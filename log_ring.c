@@ -89,6 +89,7 @@ bool log_printf(const char * fmt, ...) {
 
     if (g_log_ring_private.loop_happen) {
         kfree(g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].log);
+        g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].log = NULL;
     }
 
     g_log_ring_private.log_entries[g_log_ring_private.current_log_entry].jiffies = jiffies;
@@ -130,11 +131,23 @@ bool init_log(size_t max_log_entries) {
 
     g_log_file_entry = proc_create("a_log", S_IRUGO, NULL, &log_ring_file_ops);
 
+    if (NULL == g_log_file_entry) {
+        kfree(g_log_ring_private.log_entries);
+        g_log_ring_private.log_entries = NULL;
+    }
+
     return NULL != g_log_file_entry;
 }
 
 void remove_log(void) {
     if (NULL != g_log_file_entry) {
        proc_remove(g_log_file_entry);
+       for (int i = 0; i < g_log_ring_private.max_log_entries; ++i) {
+           if (NULL != g_log_ring_private.log_entries[i].log) {
+               kfree(g_log_ring_private.log_entries[i].log);
+               g_log_ring_private.log_entries[i].log = NULL;
+           }
+       }
+       kfree(g_log_ring_private.log_entries);
     }
 }
